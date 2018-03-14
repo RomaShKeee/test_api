@@ -8,17 +8,14 @@ var session = require('express-session');
 var cors = require('cors');
 var mongoose = require('mongoose');
 
-var index = require('./routes/index');
-var users = require('./routes/users');
-
 var isProduction = process.env.NODE_ENV === 'production';
 
 var app = express();
 
 app.use(cors());
 // view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+//app.set('views', path.join(__dirname, 'views'));
+//app.set('view engine', 'jade');
 
 // uncomment after placing your favicon in /public
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
@@ -37,8 +34,10 @@ if(isProduction){
   mongoose.set('debug', true);
 }
 
-app.use('/', index);
-app.use('/users', users);
+require('./models/User');
+require('./config/passport');
+
+app.use(require('./routes'));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -55,7 +54,10 @@ app.use(function(err, req, res, next) {
 
   // render the error page
   res.status(err.status || 500);
-  res.render('error');
+  res.json({
+    message: err.message,
+    error: err
+  });
 });
 
 module.exports = app;

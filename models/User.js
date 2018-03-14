@@ -8,7 +8,8 @@ var UserSchema = new mongoose.Schema({
   userId: {type: String, lowercase: true, unique: true, required: [true, "can't be blank"], index: true},
   userIdType: {type: String, enum: ['phone', 'email'], default : 'phone'},
   hash: String,
-  salt: String
+  salt: String,
+  tokens: [String]
 }, {timestamps: true});
 
 UserSchema.plugin(uniqueValidator, {message: 'is already taken.'});
@@ -24,13 +25,15 @@ UserSchema.methods.setPassword = function(password){
 };
 
 UserSchema.methods.generateJWT = function() {
-  return jwt.sign({
+  var token = jwt.sign({
     id: this._id,
     user: {
       id: this.userId,
       type: this.userIdType,
     }
   }, secret, { expiresIn: '10m' });
+  this.persistToken(token);
+  return token;
 };
 
 UserSchema.methods.toAuthJSON = function(){
@@ -40,3 +43,22 @@ UserSchema.methods.toAuthJSON = function(){
     token: this.generateJWT()
   };
 };
+
+UserSchema.methods.persistToken = function(token){
+  this.tokens.push(token);
+
+  return this.save();
+};
+
+UserSchema.methods.destroyToken = function(token){
+  this.tokens.pull(token);
+  
+  return this.save();
+};
+
+UserSchema.methods.destroyAllTokens = function(){
+  this.tokens = [];
+  return this.save();
+};
+
+mongoose.model('User', UserSchema);
